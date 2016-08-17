@@ -6,7 +6,7 @@ from blockchainrestful import views
 urlpatterns = [
     url(r'^block/last/$', views.get_last_block),
     url(r'^block/(?P<id>[0-9a-z]+)/$', views.get_block_by_id),
-    url(r'^block/?height=(?P<height>[0-9]+)', views.get_block_by_height),
+    url(r'^block/$', views.get_block),
     url(r'^transaction/last/$', views.get_last_transaction),
 ]
 

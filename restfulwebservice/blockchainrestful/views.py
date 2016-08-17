@@ -1,4 +1,5 @@
 from bigchaindb import Bigchain
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -7,6 +8,18 @@ import rethinkdb as r
 
 b = Bigchain()
 conn = r.connect(db='bigchain')
+
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated, ))
+def get_block(request, format=None):
+    height = request.GET.get('height')
+    transaction_id = request.GET.get('txid')
+    if height is not None:
+        return get_block_by_height(request, height, format)
+    if transaction_id is not None:
+        return get_block_by_transaction_id(request, transaction_id, format)
+    return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET'])
@@ -32,26 +45,33 @@ def get_block_by_id(request, block_id, format=None):
     pass
 
 
-@api_view(['GET'])
-@permission_classes((IsAuthenticated, ))
 def get_block_by_height(request, height, format=None):
     """
     通过区块高度返回区块
     输入：区块高度
     输出：区块信息
     """
-    pass
+    cursor = r.table('bigchain').filter({'block_number': int(height)}).run(conn)
+    if cursor.threshold != 0:
+        block = cursor.next()
+        return Response(json.dumps(block))
+    else:
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['GET'])
-@permission_classes((IsAuthenticated, ))
 def get_block_by_transaction_id(request, transaction_id, format=None):
     """
     通过交易id查询区块
     输入：交易id
     输出：包含该条交易的区块信息
     """
-    pass
+    cursor = r.table('bigchain').filter(lambda bigblock: bigblock['block']['transactions']['id']
+                                        .contains(transaction_id)).run(conn)
+    if cursor.threshold != 0:
+        block = cursor.next()
+        return Response(json.dumps(block))
+    else:
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET'])
