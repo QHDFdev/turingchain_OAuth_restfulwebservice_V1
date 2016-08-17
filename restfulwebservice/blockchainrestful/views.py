@@ -13,8 +13,8 @@ class BigBlock(APIView):
         self.b = Bigchain()
         self.conn = r.connect(db='bigchain')
 
-    def get(self, request, height, format=None):
-        cursor = r.table('bigchain').filter({'block_number': int(height)}).run(self.conn)
+    def get(self, request, id, format=None):
+        cursor = r.table('bigchain').filter({'id': id}).run(self.conn)
         if cursor.threshold != 0:
             big_block = cursor.next()
             serializer = BigBlockSerializer(big_block)
