@@ -10,7 +10,7 @@ urlpatterns = [
     url(r'^transaction/last/$', views.get_last_transaction),
     url(r'^transaction/(?P<id>[0-9a-z]+)/$', views.get_transaction_by_id),
     url(r'^key-pair/$', views.get_key_pair),
-    url(r'^transaction/trace/$')
+    url(r'^transaction/trace/$', views.trace_transaction),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
