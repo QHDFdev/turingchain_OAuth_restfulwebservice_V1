@@ -11,4 +11,4 @@ conn = r.connect(db='bigchain')
 @api_view(['GET'])
 def get_last_block(request, format=None):
     big_block = r.table('bigchain').max('block_number').run(conn)
-    return Response(json.dumps(big_block['votes']), sort_keys=True, indent=4)
+    return Response(json.dumps(big_block['votes'], sort_keys=True, indent=4))
