@@ -130,14 +130,17 @@ def trace_transaction(request, format=None):
     public_key = request.GET.get('pubkey')
     input_list = b.get_owned_ids(public_key)
     if input_list != []:
+        tx_ids = []
         input = input_list.pop()
         tx = b.get_transaction(input['txid'])
         tx_id = tx['id']
         while tx['transaction']['data']['payload']['previous_process_tx_id'] is not None:
-            yield tx_id
+            tx_ids.append(tx_id)
             tx = b.get_transaction(tx['transaction']['data']['payload']['previous_process_tx_id'])
             tx_id = tx['id']
-        yield tx_id
+        tx_ids.append(tx_id)
+        return Response(json.dumps({'txs': tx_ids}))
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['POST'])
