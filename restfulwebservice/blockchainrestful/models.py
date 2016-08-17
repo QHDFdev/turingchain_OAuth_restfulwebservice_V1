@@ -1,3 +1,5 @@
+from array import array
+
 from django.db import models
 
 
@@ -12,11 +14,11 @@ class VoteDetail(models.Model):
 class Vote(models.Model):
     signature = models.CharField
     node_pubkey = models.CharField
-    vote = models.OneToOneField(VoteDetail)
+    vote = VoteDetail
 
 
 class BigBlock(models.Model):
     block_id = models.CharField
     block_number = models.IntegerField
     signature = models.CharField
-    votes = models.ManyToManyField(Vote)
+    votes = array(Vote)
