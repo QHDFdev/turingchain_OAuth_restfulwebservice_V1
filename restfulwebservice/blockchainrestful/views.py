@@ -15,9 +15,9 @@ class BigBlock(APIView):
 
     def get(self, request, height, format=None):
         cursor = r.table('bigchain').filter({'block_number': height}).run(self.conn)
+        print(height)
         if cursor.threshold != 0:
             big_block = cursor.next()
             serializer = BigBlockSerializer(big_block)
             return Response(serializer.data)
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
