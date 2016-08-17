@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 import rethinkdb as r
 
+from blockchainrestful.serializers import BigBlockSerializer
+
 
 class BigBlock(APIView):
 
@@ -15,6 +17,7 @@ class BigBlock(APIView):
         cursor = r.table('bigchain').filter({'block_number': height}).run(self.conn)
         if cursor.threshold != 0:
             big_block = cursor.next()
-            return Response(big_block)
+            serializer = BigBlockSerializer(big_block)
+            return Response(serializer.data)
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
