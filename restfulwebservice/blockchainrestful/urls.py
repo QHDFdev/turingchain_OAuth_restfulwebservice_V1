@@ -1,10 +1,10 @@
 from django.conf.urls import url
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from blockchainrestful.views import BigBlock
+from blockchainrestful import views
 
 urlpatterns = [
-    url(r'^block/(?P<id>[0-9a-z]+)/$', BigBlock.as_view()),
+    url(r'^block/last/$', views.get_last_block),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
