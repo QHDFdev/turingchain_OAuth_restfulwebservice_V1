@@ -128,7 +128,9 @@ def trace_transaction(request, format=None):
     输出：交易序列
     """
     public_key = request.GET.get('pubkey')
+    print(public_key)
     input_list = b.get_owned_ids(public_key)
+    print(input_list)
     if input_list != []:
         tx_ids = []
         input = input_list.pop()
