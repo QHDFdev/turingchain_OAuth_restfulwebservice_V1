@@ -153,7 +153,7 @@ def create_transaction(request, format=None):
     输入：公钥，人员，地点，时间，物品
     输出：交易id
     """
-    data = json.loads(request.raw_post_data)
+    data = json.loads(request.body.decode("utf-8"))
     print(data)
     who = data['who']
     return Response(json.dumps(who))
