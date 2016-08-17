@@ -5,6 +5,7 @@ from blockchainrestful.models import BigBlock
 
 
 class BigBlockSerializer(serializers.ModelSerializer):
+    id = serializers.CharField
 
     class Meta:
         model = BigBlock
