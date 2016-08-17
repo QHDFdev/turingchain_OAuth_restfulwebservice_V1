@@ -154,7 +154,8 @@ def create_transaction(request, format=None):
     输出：交易id
     """
     public_key = request.POST.get('pubkey')
-    return Response(json.dumps(public_key))
+    who = request.POST.get('who')
+    return Response(json.dumps(who))
 
 
 @api_view(['POST'])
