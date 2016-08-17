@@ -5,11 +5,10 @@ from blockchainrestful.models import BigBlock
 
 
 class BigBlockSerializer(serializers.ModelSerializer):
-    id = serializers.CharField
 
     class Meta:
         model = BigBlock
-        fields = ('block_number', 'signature')
+        fields = ('id', 'block_number', 'signature')
 
 
 class UserSerializer(serializers.ModelSerializer):
