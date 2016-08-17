@@ -19,4 +19,4 @@ class BigBlock(models.Model):
     block_id = models.CharField
     block_number = models.IntegerField
     signature = models.CharField
-    votes = models.ManyToOneRel(Vote)
+    votes = models.ManyToManyField(Vote)
