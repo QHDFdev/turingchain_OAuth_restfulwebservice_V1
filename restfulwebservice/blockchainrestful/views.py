@@ -147,13 +147,14 @@ def trace_transaction(request, format=None):
 
 @api_view(['POST'])
 @permission_classes((IsAuthenticated, ))
-def create_transaction(request, public_key, who, where, when, thing, format=None):
+def create_transaction(request, format=None):
     """
     区块创建Create交易
     输入：公钥，人员，地点，时间，物品
     输出：交易id
     """
-    pass
+    public_key = request.GET.get('pubkey')
+    return Response(json.dumps(public_key))
 
 
 @api_view(['POST'])
