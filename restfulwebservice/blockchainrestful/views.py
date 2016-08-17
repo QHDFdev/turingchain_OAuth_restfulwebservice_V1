@@ -153,7 +153,7 @@ def create_transaction(request, format=None):
     输入：公钥，人员，地点，时间，物品
     输出：交易id
     """
-    public_key = request.GET.get('pubkey')
+    public_key = request.POST.get('pubkey')
     return Response(json.dumps(public_key))
 
 
