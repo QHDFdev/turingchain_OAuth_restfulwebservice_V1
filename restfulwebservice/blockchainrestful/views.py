@@ -12,5 +12,6 @@ conn = r.connect(db='bigchain')
 @api_view(['GET'])
 def get_last_block(request, format=None):
     big_block = r.table('bigchain').max('block_number').run(conn)
+    big_block['block_id'] = big_block['id']
     serializer = BigBlockSerializer(big_block)
     return Response(serializer.data)

@@ -8,7 +8,7 @@ class BigBlockSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BigBlock
-        fields = ('block_number', 'signature', 'block_id')
+        fields = ('block_id', 'block_number', 'signature')
 
 
 class UserSerializer(serializers.ModelSerializer):
