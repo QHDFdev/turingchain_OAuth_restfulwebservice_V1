@@ -7,4 +7,4 @@ class BigBlock(models.Model):
     signature = models.CharField
 
     class Meta:
-        ordering = ('block_number')
+        ordering = ('block_number',)
