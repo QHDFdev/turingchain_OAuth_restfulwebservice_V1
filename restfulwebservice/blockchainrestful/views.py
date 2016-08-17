@@ -1,4 +1,4 @@
-from bigchaindb import Bigchain
+from bigchaindb import Bigchain, crypto
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -36,13 +36,18 @@ def get_last_block(request, format=None):
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
-def get_block_by_id(request, block_id, format=None):
+def get_block_by_id(request, id, format=None):
     """
     通过区块id查询区块
     输入：区块id
     输出：区块信息
     """
-    pass
+    cursor = r.table('bigchain').filter({'id': int(id)}).run(conn)
+    if cursor.threshold != 0:
+        block = cursor.next()
+        return Response(json.dumps(block))
+    else:
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 def get_block_by_height(request, height, format=None):
@@ -82,18 +87,24 @@ def get_last_transaction(request, format=None):
     输入：无
     输出：交易信息
     """
-    pass
+    tx = r.table('bigchain').max('block_number')['block']['transactions'] \
+        .max(lambda tx: tx['transaction']['timestamp']).run(conn)
+    return Response(json.dumps(tx))
 
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
-def get_transaction_by_id(request, transaction_id, format=None):
+def get_transaction_by_id(request, id, format=None):
     """
     通过交易id查询交易
     输入：交易id
     输出：交易信息
     """
-    pass
+    tx = b.get_transaction(id)
+    if tx is not None:
+        return Response(json.dumps(tx))
+    else:
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET'])
@@ -104,7 +115,8 @@ def get_key_pair(request, format=None):
     输入：无
     输出：公钥和私钥
     """
-    pass
+    private_key, public_key = crypto.generate_key_pair()
+    return Response(json.dumps({'private_key': private_key, 'public_key': public_key}))
 
 
 @api_view(['GET'])
