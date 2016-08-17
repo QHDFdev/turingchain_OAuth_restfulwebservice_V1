@@ -15,6 +15,7 @@ class BigBlock(APIView):
 
     def get(self, request, height, format=None):
         cursor = r.table('bigchain').filter({'block_number': height}).run(self.conn)
+        print(type(height))
         print(cursor.threshold)
         if cursor.threshold != 0:
             big_block = cursor.next()
