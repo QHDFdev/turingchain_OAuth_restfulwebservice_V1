@@ -154,9 +154,12 @@ def create_transaction(request, format=None):
     输出：交易id
     """
     data = json.loads(request.body.decode("utf-8"))
-    print(data)
-    who = data['who']
-    return Response(json.dumps(who))
+    payload = {key: value for key, value in data.items() if key is not 'public_key'}
+    print(payload)
+    tx = b.create_transaction(b.me, data['public_key'], None, 'CREATE', payload=payload)
+    tx_signed = b.sign_transaction(tx, b.me_private)
+    # b.write_transaction(tx_signed)
+    return Response(json.dumps({'id': tx_signed['id']}))
 
 
 @api_view(['POST'])
