@@ -203,6 +203,6 @@ def transfer_transaction(request, format=None):
         tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data)
         tx_signed_2 = b.sign_transaction(tx, b.me_private)
         b.write_transaction(tx_signed_2)
-        return Response({'txs': {'transfer_id': tx_signed['id'], 'create_id': tx_signed_2['id']}, 'key_pair': {'public_key': public_key,
-                                                                                              'private_key': private_key}})
+        return Response({'txs': {'transfer_id': tx_signed['id'], 'create_id': tx_signed_2['id']},
+                         'key_pair': {'public_key': public_key, 'private_key': private_key}})
     return Response({'transfer tx id': tx_signed['id']})
