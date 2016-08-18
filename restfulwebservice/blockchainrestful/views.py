@@ -191,10 +191,10 @@ def transfer_transaction(request, format=None):
         data['thing']['thing_order_quantity'] = str(remain)
         data['who']['goto'] = data['who']['original']
         data['where']['goto'] = data['where']['original']
-        for item in data['who']['original'].items():
-            item = None
-        for item in data['where']['original'].items():
-            item = None
+        for key, value in data['who']['original'].items():
+            data['who']['original'][key] = None
+        for key, value in data['where']['original'].items():
+            data['where']['original'][key] = None
         data['when']['receive_date'] = data['when']['send_date']
         data['previous_process_tx_id'] = tx_signed['id']
         private_key, public_key = crypto.generate_key_pair()
