@@ -1,3 +1,5 @@
+import copy
+
 from bigchaindb import Bigchain, crypto
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -31,7 +33,7 @@ def get_last_block(request, format=None):
     输出：区块信息
     """
     block = r.table('bigchain').max('block_number').run(conn)
-    return Response(json.dumps(block))
+    return json.dumps(block)
 
 
 @api_view(['GET'])
@@ -189,8 +191,8 @@ def transfer_transaction(request, format=None):
     if remain > 0:
         time.sleep(5)
         data['thing']['thing_order_quantity'] = str(remain)
-        data['who']['goto'] = data['who']['original']
-        data['where']['goto'] = data['where']['original']
+        data['who']['goto'] = copy.deepcopy(data['who']['original'])
+        data['where']['goto'] = copy.deepcopy(data['where']['original'])
         for key, value in data['who']['original'].items():
             data['who']['original'][key] = None
         for key, value in data['where']['original'].items():
