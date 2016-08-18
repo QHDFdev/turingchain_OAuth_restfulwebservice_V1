@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-import json, time
+import time
 import rethinkdb as r
 
 b = Bigchain()
@@ -45,10 +45,10 @@ def get_block_by_id(request, id, format=None):
     输入：区块id
     输出：区块信息
     """
-    cursor = r.table('bigchain').filter({'id': int(id)}).run(conn)
+    cursor = r.table('bigchain').filter({'id': id}).run(conn)
     if cursor.threshold != 0:
         block = cursor.next()
-        return Response(json.dumps(block))
+        return JsonResponse(block)
     else:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -62,7 +62,7 @@ def get_block_by_height(request, height, format=None):
     cursor = r.table('bigchain').filter({'block_number': int(height)}).run(conn)
     if cursor.threshold != 0:
         block = cursor.next()
-        return Response(json.dumps(block))
+        return JsonResponse(block)
     else:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -77,7 +77,7 @@ def get_block_by_transaction_id(request, transaction_id, format=None):
                                         .contains(transaction_id)).run(conn)
     if cursor.threshold != 0:
         block = cursor.next()
-        return Response(json.dumps(block))
+        return JsonResponse(block)
     else:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -92,7 +92,7 @@ def get_last_transaction(request, format=None):
     """
     tx = r.table('bigchain').max('block_number')['block']['transactions'] \
         .max(lambda tx: tx['transaction']['timestamp']).run(conn)
-    return Response(json.dumps(tx))
+    return JsonResponse(tx)
 
 
 @api_view(['GET'])
@@ -105,7 +105,7 @@ def get_transaction_by_id(request, id, format=None):
     """
     tx = b.get_transaction(id)
     if tx is not None:
-        return Response(json.dumps(tx))
+        return JsonResponse(tx)
     else:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -119,7 +119,7 @@ def get_key_pair(request, format=None):
     输出：公钥和私钥
     """
     private_key, public_key = crypto.generate_key_pair()
-    return Response(json.dumps({'private_key': private_key, 'public_key': public_key}))
+    return JsonResponse({'private_key': private_key, 'public_key': public_key})
 
 
 @api_view(['GET'])
@@ -144,7 +144,7 @@ def trace_transaction(request, format=None):
             tx = b.get_transaction(tx['transaction']['data']['payload']['previous_process_tx_id'])
             tx_id = tx['id']
         tx_ids.append(tx_id)
-        return Response(json.dumps({'txs': tx_ids}))
+        return JsonResponse({'txs': tx_ids})
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -161,7 +161,7 @@ def create_transaction(request, format=None):
     tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data)
     tx_signed = b.sign_transaction(tx, b.me_private)
     b.write_transaction(tx_signed)
-    return Response(json.dumps({'id': tx_signed['id']}))
+    return JsonResponse({'id': tx_signed['id']})
 
 
 @api_view(['POST'])
@@ -204,6 +204,6 @@ def transfer_transaction(request, format=None):
         tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data)
         tx_signed_2 = b.sign_transaction(tx, b.me_private)
         b.write_transaction(tx_signed_2)
-        return Response(json.dumps({'txs': {'transfer_id': tx_signed['id'], 'create_id': tx_signed_2['id']}, 'key_pair': {'public_key': public_key,
-                                                                                              'private_key': private_key}}))
-    return Response(json.dumps({'transfer tx id': tx_signed['id']}))
+        return JsonResponse({'txs': {'transfer_id': tx_signed['id'], 'create_id': tx_signed_2['id']}, 'key_pair': {'public_key': public_key,
+                                                                                              'private_key': private_key}})
+    return JsonResponse({'transfer tx id': tx_signed['id']})
