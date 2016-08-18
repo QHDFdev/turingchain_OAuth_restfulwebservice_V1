@@ -34,7 +34,7 @@ def get_last_block(request, format=None):
     输出：区块信息
     """
     block = r.table('bigchain').max('block_number').run(conn)
-    return Response(JSONRenderer().render(json.dumps(block)))
+    return Response(json.dumps(block, sort_keys=True, indent=4, separators=(',', ': ')))
 
 
 @api_view(['GET'])
