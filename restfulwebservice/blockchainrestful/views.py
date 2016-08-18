@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-import json
+import json, time
 import rethinkdb as r
 
 b = Bigchain()
@@ -155,20 +155,52 @@ def create_transaction(request, format=None):
     """
     data = json.loads(request.body.decode("utf-8"))
     data.pop('public_key', None)
-    print(data)
     tx = b.create_transaction(b.me, data['public_key'], None, 'CREATE', payload=data)
     tx_signed = b.sign_transaction(tx, b.me_private)
-    # b.write_transaction(tx_signed)
+    b.write_transaction(tx_signed)
     return Response(json.dumps({'id': tx_signed['id']}))
 
 
 @api_view(['POST'])
 @permission_classes((IsAuthenticated, ))
-def transfer_transaction(request, tx_originator_public_key, tx_recipient_public_key, tx_originator_private_key, who,
-                         where, when, thing, format=None):
+def transfer_transaction(request, format=None):
     """
     创建Transfer交易
     输入：交易发起方公钥，交易接收方公钥，交易发起方私钥，人员，地点，时间，物品
     输出：交易id和剩余物品的秘钥
     """
-    pass
+    # get total numbers
+    data = json.loads(request.body.decode("utf-8"))
+    tx_originator_public_key = data.pop('tx_originator_public_key', None)
+    tx_originator_private_key = data.pop('tx_originator_private_key', None)
+    tx_recipient_public_key = data.pop('tx_recipient_public_key', None)
+    input_list = b.get_owned_ids(tx_originator_public_key)
+    if input_list == []:
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    input = input_list.pop()
+    tx = b.get_transaction(input['txid'])
+    total = tx['transaction']['data']['payload']['thing']['thing_order_quantity']
+    # transfer
+    tx = b.create_transaction(tx_originator_public_key, tx_recipient_public_key, input, 'TRANSFER', payload=data)
+    tx_signed = b.sign_transaction(tx, tx_originator_private_key)
+    b.write_transaction(tx_signed)
+    # deal with remains
+    remain = int(total) - int(data['thing']['thing_order_quantity'])
+    if remain > 0:
+        time.sleep(5)
+        data['thing']['thing_order_quantity'] = str(remain)
+        data['who']['goto'] = data['who']['original']
+        data['where']['goto'] = data['where']['original']
+        for item in data['who']['original']:
+            item = None
+        for item in data['where']['original']:
+            item = None
+        data['when']['receive_date'] = data['when']['send_date']
+        data['previous_process_tx_id'] = tx_signed['id']
+        private_key, public_key = crypto.generate_key_pair()
+        tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data)
+        tx_signed_2 = b.sign_transaction(tx, b.me_private)
+        b.write_transaction(tx_signed_2)
+        return Response(json.dumps({'txs': [tx_signed['id'], tx_signed_2['id']], 'key_pair': {'public_key': public_key,
+                                                                                              'private_key': private_key}}))
+    return Response(json.dumps({'transfer tx id': tx_signed['id']}))
