@@ -4,6 +4,7 @@ from bigchaindb import Bigchain, crypto
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 import json, time
 import rethinkdb as r
@@ -33,7 +34,7 @@ def get_last_block(request, format=None):
     输出：区块信息
     """
     block = r.table('bigchain').max('block_number').run(conn)
-    return json.dumps(block)
+    return Response(JSONRenderer().render(json.dumps(block)))
 
 
 @api_view(['GET'])
