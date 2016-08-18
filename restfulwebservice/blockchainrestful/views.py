@@ -191,9 +191,9 @@ def transfer_transaction(request, format=None):
         data['thing']['thing_order_quantity'] = str(remain)
         data['who']['goto'] = data['who']['original']
         data['where']['goto'] = data['where']['original']
-        for item in data['who']['original']:
+        for item in data['who']['original'].items():
             item = None
-        for item in data['where']['original']:
+        for item in data['where']['original'].items():
             item = None
         data['when']['receive_date'] = data['when']['send_date']
         data['previous_process_tx_id'] = tx_signed['id']
