@@ -154,7 +154,8 @@ def trace_transaction(request, format=None):
 def create_transaction(request, format=None):
     """
     区块创建Create交易
-    输入：公钥(public_key)
+    输入：前一个交易id(previous_process_tx_id)
+         公钥(public_key)
          人员(who: {original: whoItem, goto: whoItem})，
          whoItem: user_id, user_type, user_name, company_name, company_id, u_company_id
          地点(where: {original: whereItem, goto: whereItem})
