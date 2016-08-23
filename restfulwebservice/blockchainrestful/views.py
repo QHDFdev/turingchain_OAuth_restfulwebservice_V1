@@ -150,7 +150,13 @@ def trace_transaction(request, format=None):
 def create_transaction(request, format=None):
     """
     区块创建Create交易
-    输入：公钥，人员，地点，时间，物品
+    输入：公钥(pulic_key)
+    人员(who: {original: whoItem, goto: whoItem})，
+    whoItem: user_id, user_type, user_name, company_name, company_id, u_company_id
+    地点(where: {original: whereItem, goto: whereItem})
+    whereItem: nation, region, place, region_id
+    时间(when: make_date, send_date, receive_date, expire_date)
+    物品(thing: thing_type_id, thing_type_name, thing_id, thing_name, origin_place, thing_order_quantity, thing_order_batch, price)
     输出：交易id
     """
     data = request.data
@@ -166,7 +172,16 @@ def create_transaction(request, format=None):
 def transfer_transaction(request, format=None):
     """
     创建Transfer交易
-    输入：交易发起方公钥，交易接收方公钥，交易发起方私钥，人员，地点，时间，物品
+    输入：前一个交易id(previous_process_tx_id)
+         交易发起方公钥(tx_originator_public_key)，
+         交易接收方公钥(tx_recipient_public_key)，
+         交易发起方私钥(tx_originator_private_key)，
+         人员(who: {original: whoItem, goto: whoItem})，
+         whoItem: user_id, user_type, user_name, company_name, company_id, u_company_id
+         地点(where: {original: whereItem, goto: whereItem})
+         whereItem: nation, region, place, region_id
+         时间(when: make_date, send_date, receive_date, expire_date)
+         物品(thing: thing_type_id, thing_type_name, thing_id, thing_name, origin_place, thing_order_quantity, thing_order_batch, price)
     输出：交易id和剩余物品的秘钥
     """
     # get total numbers
@@ -231,7 +246,7 @@ def trace_common_transaction(request, format=None):
 def create_common_transaction(request, format=None):
     """
     通用交易插入函数
-    输入：数据，前一个交易id
+    输入：数据，前一个交易id(previous_process_tx_id)
     输出：交易id
     """
     data = request.data
