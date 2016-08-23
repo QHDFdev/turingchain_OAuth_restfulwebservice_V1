@@ -11,6 +11,8 @@ urlpatterns = [
     url(r'^transaction/trace/$', views.trace_transaction),
     url(r'^transaction/create/$', views.create_transaction),
     url(r'^transaction/transfer/$', views.transfer_transaction),
+    url(r'^transaction/common/trace/$', views.trace_common_transaction),
+    url(r'^transaction/common/create/$', views.create_common_transaction),
     url(r'^transaction/(?P<id>[0-9a-z]+)/$', views.get_transaction_by_id),
     url(r'^key-pair/$', views.get_key_pair),
 ]

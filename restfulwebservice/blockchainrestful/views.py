@@ -130,9 +130,7 @@ def trace_transaction(request, format=None):
     输出：交易序列
     """
     public_key = request.GET.get('pubkey')
-    print(public_key)
     input_list = b.get_owned_ids(public_key)
-    print(input_list)
     if input_list != []:
         tx_ids = []
         input = input_list.pop()
@@ -206,3 +204,38 @@ def transfer_transaction(request, format=None):
         return Response({'txs': {'transfer_id': tx_signed['id'], 'create_id': tx_signed_2['id']},
                          'key_pair': {'public_key': public_key, 'private_key': private_key}})
     return Response({'transfer tx id': tx_signed['id']})
+
+
+def trace_common_transaction(request, format=None):
+    """
+    通用交易回溯函数
+    输入：交易id
+    输出：交易序列
+    """
+    last_tx_id = request.GET.get('last-tx-id')
+    tx_ids = []
+    tx = b.get_transaction(last_tx_id)
+    if tx is not None:
+        tx_id = tx['id']
+        while tx['transaction']['data']['payload']['previous_process_tx_id'] is not None:
+            tx_ids.append(tx_id)
+            tx = b.get_transaction(tx['transaction']['data']['payload']['previous_process_tx_id'])
+            tx_id = tx['id']
+        tx_ids.append(tx_id)
+        return Response({'txs': tx_ids})
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def create_common_transaction(request, format=None):
+    """
+    通用交易插入函数
+    输入：数据，前一个交易id
+    输出：交易id
+    """
+    data = request.data
+    private_key, public_key = crypto.generate_key_pair()
+    tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data)
+    tx_signed = b.sign_transaction(tx, b.me_private)
+    b.write_transaction(tx_signed)
+    return Response({'id': tx_signed['id']})
+
