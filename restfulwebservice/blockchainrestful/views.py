@@ -15,6 +15,10 @@ conn = r.connect(db='bigchain')
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
 def get_block(request, format=None):
+    """
+    通过属性得到区块
+    输入：区块高度(height)或交易id(txid)
+    """
     height = request.GET.get('height')
     transaction_id = request.GET.get('txid')
     if height is not None:
@@ -126,7 +130,7 @@ def get_key_pair(request, format=None):
 def trace_transaction(request, format=None):
     """
     溯源
-    输入：物品公钥
+    输入：物品公钥(pubkey)
     输出：交易序列
     """
     public_key = request.GET.get('pubkey')
@@ -150,13 +154,13 @@ def trace_transaction(request, format=None):
 def create_transaction(request, format=None):
     """
     区块创建Create交易
-    输入：公钥(pulic_key)
-    人员(who: {original: whoItem, goto: whoItem})，
-    whoItem: user_id, user_type, user_name, company_name, company_id, u_company_id
-    地点(where: {original: whereItem, goto: whereItem})
-    whereItem: nation, region, place, region_id
-    时间(when: make_date, send_date, receive_date, expire_date)
-    物品(thing: thing_type_id, thing_type_name, thing_id, thing_name, origin_place, thing_order_quantity, thing_order_batch, price)
+    输入：公钥(public_key)
+         人员(who: {original: whoItem, goto: whoItem})，
+         whoItem: user_id, user_type, user_name, company_name, company_id, u_company_id
+         地点(where: {original: whereItem, goto: whereItem})
+         whereItem: nation, region, place, region_id
+         时间(when: make_date, send_date, receive_date, expire_date)
+         物品(thing: thing_type_id, thing_type_name, thing_id, thing_name, origin_place, thing_order_quantity, thing_order_batch, price)
     输出：交易id
     """
     data = request.data
@@ -225,7 +229,7 @@ def transfer_transaction(request, format=None):
 def trace_common_transaction(request, format=None):
     """
     通用交易回溯函数
-    输入：交易id
+    输入：交易id(txid)
     输出：交易序列
     """
     last_tx_id = request.GET.get('txid')
