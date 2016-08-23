@@ -206,6 +206,7 @@ def transfer_transaction(request, format=None):
     return Response({'transfer tx id': tx_signed['id']})
 
 
+@api_view(['GET'])
 def trace_common_transaction(request, format=None):
     """
     通用交易回溯函数
@@ -226,6 +227,7 @@ def trace_common_transaction(request, format=None):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@api_view(['POST'])
 def create_common_transaction(request, format=None):
     """
     通用交易插入函数
