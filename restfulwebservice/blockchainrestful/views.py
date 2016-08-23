@@ -212,7 +212,7 @@ def trace_common_transaction(request, format=None):
     输入：交易id
     输出：交易序列
     """
-    last_tx_id = request.GET.get('last-tx-id')
+    last_tx_id = request.GET.get('txid')
     tx_ids = []
     tx = b.get_transaction(last_tx_id)
     if tx is not None:
