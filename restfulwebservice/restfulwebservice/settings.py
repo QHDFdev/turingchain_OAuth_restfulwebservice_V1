@@ -122,6 +122,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+STATIC_ROOT = '/root/Blockchain_restful_webservice/restfulwebservice/static/'
+
 REST_FRAMEWORK = {
     'PAGE_SIZE': 10
 }
