@@ -108,7 +108,7 @@ def get_transaction_by_id(request, id, format=None):
     """
     tx = b.get_transaction(id)
     if tx is not None:
-        return Response(tx)
+        return Response(transfer_payload_coding(tx))
     else:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -256,8 +256,15 @@ def create_common_transaction(request, format=None):
     """
     data = request.data
     private_key, public_key = crypto.generate_key_pair()
-    tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data)
+    tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data.encode('unicode-escape'))
     tx_signed = b.sign_transaction(tx, b.me_private)
     b.write_transaction(tx_signed)
     return Response({'id': tx_signed['id']})
 
+
+def transfer_payload_coding(tx):
+    """
+    unicode转中文
+    """
+    tx['transaction']['data']['payload'] = tx['transaction']['data']['payload'].encode('ascii').decode('unicode-escape')
+    return tx
