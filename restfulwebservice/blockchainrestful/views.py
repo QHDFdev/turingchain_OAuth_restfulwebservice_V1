@@ -256,7 +256,7 @@ def create_common_transaction(request, format=None):
     """
     data = request.data
     private_key, public_key = crypto.generate_key_pair()
-    tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data.encode('unicode-escape'))
+    tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=str(data).encode('unicode-escape'))
     tx_signed = b.sign_transaction(tx, b.me_private)
     b.write_transaction(tx_signed)
     return Response({'id': tx_signed['id']})
