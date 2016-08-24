@@ -269,9 +269,11 @@ def create_common_transaction(request, format=None):
     输出：交易id
     """
     data = request.data
-    data['content'] = str(data['content']).encode('unicode-escape')
+    previous_process_tx_id = data.pop('previous_process_tx_id', None)
+    data = str(data).encode('unicode-escape')
     private_key, public_key = crypto.generate_key_pair()
-    tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload={'content': data})
+    tx = b.create_transaction(b.me, public_key, None, 'CREATE',
+                              payload={'previous_process_tx_id': previous_process_tx_id, 'content': data})
     tx_signed = b.sign_transaction(tx, b.me_private)
     b.write_transaction(tx_signed)
     return Response({'id': tx_signed['id']})
