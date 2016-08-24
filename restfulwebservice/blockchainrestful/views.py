@@ -108,7 +108,7 @@ def get_transaction_by_id(request, id, format=None):
     """
     tx = b.get_transaction(id)
     if tx is not None:
-        return Response(transfer_payload_coding(tx))
+        return Response(tx)
     else:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -227,6 +227,20 @@ def transfer_transaction(request, format=None):
 
 
 @api_view(['GET'])
+def get_common_transaction(request, id, format=None):
+    """
+    通用交易查询函数
+    输入：交易id
+    输出：交易信息
+    """
+    tx = b.get_transaction(id)
+    if tx is not None:
+        return Response(transfer_payload_coding(tx))
+    else:
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
 def trace_common_transaction(request, format=None):
     """
     通用交易回溯函数
@@ -266,5 +280,5 @@ def transfer_payload_coding(tx):
     """
     unicode转中文
     """
-    tx['transaction']['data']['payload'] = tx['transaction']['data']['payload'].encode('ascii').decode('unicode-escape')
+    tx['content'] = tx['content'].encode('ascii').decode('unicode-escape')
     return tx
