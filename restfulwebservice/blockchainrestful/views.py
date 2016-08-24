@@ -235,7 +235,7 @@ def get_common_transaction(request, id, format=None):
     """
     tx = b.get_transaction(id)
     if tx is not None:
-        return Response(tx['transaction']['data']['payload']['content'].encode('ascii').decode('unicode-escape'))
+        return Response(eval(str(tx['transaction']['data']['payload']).encode('ascii').decode('unicode-escape')))
     else:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -269,11 +269,9 @@ def create_common_transaction(request, format=None):
     输出：交易id
     """
     data = request.data
-    previous_process_tx_id = data.pop('previous_process_tx_id', None)
-    data = str(data).encode('unicode-escape')
+    data = eval(str(data).encode('unicode-escape'))
     private_key, public_key = crypto.generate_key_pair()
-    tx = b.create_transaction(b.me, public_key, None, 'CREATE',
-                              payload={'previous_process_tx_id': previous_process_tx_id, 'content': data})
+    tx = b.create_transaction(b.me, public_key, None, 'CREATE', payload=data)
     tx_signed = b.sign_transaction(tx, b.me_private)
     b.write_transaction(tx_signed)
     return Response({'id': tx_signed['id']})
