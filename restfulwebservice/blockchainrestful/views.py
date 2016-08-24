@@ -235,6 +235,7 @@ def get_common_transaction(request, id, format=None):
     """
     tx = b.get_transaction(id)
     if tx is not None:
+        # 将content转为含中文的dict
         content = eval(tx['transaction']['data']['payload']['content'].encode('ascii').decode('unicode-escape'))
         return Response({'previous_process_tx_id': tx['transaction']['data']['payload']['previous_process_tx_id'],
                          'content': content})
@@ -272,6 +273,7 @@ def create_common_transaction(request, format=None):
     """
     data = request.data
     previous_process_tx_id = data.pop('previous_process_tx_id', None)
+    # 将content转为unicode string存储
     content = str(data['content']).encode('unicode-escape')
     private_key, public_key = crypto.generate_key_pair()
     tx = b.create_transaction(b.me, public_key, None, 'CREATE',
