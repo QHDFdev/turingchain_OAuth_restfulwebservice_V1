@@ -115,6 +115,20 @@ def get_transaction_by_id(request, id, format=None):
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
+def get_transfer_transaction(request, num, format=None):
+    """
+    查询transfer transaction
+    输入：num
+    输出：特定数量的交易
+    """
+    blocks = r.table('bigchain').filter(lambda bigblock: bigblock['block']['transactions'] \
+                                        .contains(lambda tx: tx['transaction']['operation']=='TRANSFER')) \
+                                        .order_by(r.desc('block_number')).limit(int(num)).run(conn)
+    return Response(blocks)
+
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated, ))
 def get_key_pair(request, format=None):
     """
     获取秘钥

@@ -8,6 +8,7 @@ urlpatterns = [
     url(r'^block/last/$', views.get_last_block),
     url(r'^block/(?P<id>[0-9a-z]+)/$', views.get_block_by_id),
     url(r'^transaction/last/$', views.get_last_transaction),
+    url(r'^transaction/transfertype/$', views.get_transfer_transaction),
     url(r'^transaction/trace/$', views.trace_transaction),
     url(r'^transaction/create/$', views.create_transaction),
     url(r'^transaction/transfer/$', views.transfer_transaction),
