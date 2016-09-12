@@ -17,6 +17,11 @@ urlpatterns = [
     url(r'^transaction/common/(?P<id>[0-9a-z]+)/$', views.get_common_transaction),
     url(r'^transaction/(?P<id>[0-9a-z]+)/$', views.get_transaction_by_id),
     url(r'^key-pair/$', views.get_key_pair),
+    # for bill
+    url(r'^blocks/$', views.blocks),
+    url(r'^blocks/(?P<id>[0-9a-z]+)/$', views.block),
+    url(r'^transactions/$', views.transactions),
+    url(r'^transactions/(?P<id>[0-9a-z]+)/$', views.transaction)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

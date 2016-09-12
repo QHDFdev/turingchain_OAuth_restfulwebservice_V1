@@ -1,11 +1,12 @@
 import copy
+import time
+import json
 
-from bigchaindb import Bigchain, crypto
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-import time
+from bigchaindb import Bigchain, crypto
 import rethinkdb as r
 
 b = Bigchain()
@@ -51,8 +52,10 @@ def get_block_by_id(request, id, format=None):
     cursor = r.table('bigchain').filter({'id': id}).run(conn)
     if cursor.threshold != 0:
         block = cursor.next()
+        cursor.close()
         return Response(block)
     else:
+        cursor.close()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -65,8 +68,10 @@ def get_block_by_height(request, height, format=None):
     cursor = r.table('bigchain').filter({'block_number': int(height)}).run(conn)
     if cursor.threshold != 0:
         block = cursor.next()
+        cursor.close()
         return Response(block)
     else:
+        cursor.close()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -80,8 +85,10 @@ def get_block_by_transaction_id(request, transaction_id, format=None):
                                         .contains(transaction_id)).run(conn)
     if cursor.threshold != 0:
         block = cursor.next()
+        cursor.close()
         return Response(block)
     else:
+        cursor.close()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -296,3 +303,229 @@ def create_common_transaction(request, format=None):
     tx_signed = b.sign_transaction(tx, b.me_private)
     b.write_transaction(tx_signed)
     return Response({'id': tx_signed['id']})
+
+# bill
+def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
+            limit=None, keys=None, db_name='bigchain'):
+    '''
+    rethinkdb wrapper
+    Para:
+      filtes - dict, for filter
+      fields - list of string, pluck by this, only one layer
+        eg: ['block_number'] means pluck data['block_number']
+        can`t pluck multi layer like data['block']['transaction']
+      keys - list of string, key to select data of table, layer by layer
+        eg: ['block', 'transaction'] means deal data['block']['transaction']
+        this parameter can only set by local other than HTTP.
+      sortby - string or function, for sort
+      order - 'des' or 'asc', default 'asc'
+      limit - string or int, limit the counter of return, less than 100
+    Return:
+      None or list of data
+    '''
+    rdbc = r.connect(db=db_name)
+    # make rql
+    rql = r.table(db_name)
+    if keys != None:
+        for key in keys:
+            rql = rql.__getitem__(key)
+    if filtes != None:  # add filter
+        rql = rql.filter(filtes)
+    if sortby != None:  # add sort
+        if order != 'des':  # add sort order
+            rql = rql.order_by(sortby)
+        else:
+            rql = rql.order_by(r.desc(sortby))
+    if limit != None:  # add limit
+        try:
+            rql = rql.limit(int(limit))
+        except TypeError:
+            rql.limit(100)
+    else:
+        rql.limit(100)
+    if len(fields) != 0:  # pluck data
+        rql = rql.pluck(fields)
+    # get data
+    rtn = None
+    try:
+        rtn = rql.run(rdbc)
+    except:
+        # handle error?
+        rtn = None
+    # for filter, rql.run() will return a DefaultCursor other than a dict
+    ans = []
+    if rtn is None:
+        pass
+    elif type(rtn) != type([]):
+        # conv DefaultCursor to a dict
+        ans = []
+        for data in rtn:
+            ans.append(data)
+        rtn.close()
+    else:
+        ans = rtn
+    # close connection
+    rdbc.close()
+
+    return ans
+
+def field_filter(source, fields):
+    '''
+    filter fields
+    Para:
+      source - dict
+      fields - list of string
+    Retrun:
+      list
+    '''
+    if len(fields) == 0:
+        ans = source
+    else:
+        ans = {}
+        for field in fields:
+            try:
+                ans[field] = source[field]
+            except KeyError:
+                pass
+    return ans
+
+@api_view(['GET'])
+def block(request, id, format=None):
+    '''
+    URL:
+      blocks/[id]/
+    Use for:
+      get one block data by id
+    Para:
+      field - field to filter json dict
+    Return:
+      a json dict
+    '''
+    # get block data
+    fields = request.GET.getlist('field')
+    data = rdb_select(filtes={'id': id}, fields=fields)
+    return Response(data[0])
+
+
+@api_view(['GET'])
+def blocks(request, format=None):
+    '''
+    URL:
+      blocks/
+    Use for:
+      get block data
+    Para:
+      field - filter every json dict
+      limit - limit list length
+      sortby - sort by specified field
+      order - the order for sort, 'asc' or 'des', default 'asc'
+    Return:
+      a json list of the dicts
+    '''
+    # get paras
+    fields = request.GET.getlist('field')
+    limit = request.GET.get('limit', None)
+    sortby = request.GET.get('sortby', None)
+    order = request.GET.get('order', None)
+    # get data from database
+    datas = rdb_select(fields=fields, sortby=sortby, order=order, limit=limit)
+    return Response(datas)
+
+@api_view(['GET'])
+def transaction(request, id, format=None):
+    '''
+    URL:
+      transaction/[id]
+    Use for:
+      get one transaction data by id
+    Para:
+      field - field to filter json dict
+    Return:
+      a json dict
+    '''
+    # get paras
+    fields = request.GET.getlist('field')
+    # get transaction
+    data = b.get_transaction(id)
+    return Response(field_filter(data, fields))
+
+
+@api_view(['GET', 'POST'])
+def transactions(request, format=None):
+    '''
+    URL:
+      transactions/
+    Use for:
+      get or create transaction
+    Para:
+      GET:
+        field - filter every json dict
+        limit - limit list length
+        sortby - sort by specified field
+        order - the order for sort, 'asc' or 'des', default 'asc'
+        opt - normal or trace, trace for trace transactions, default normal
+        pubk - public key for trace
+      POST:
+        oringin_pubk - transaction origin public key, if no this value, will
+          create one CREATE transaction
+        oringin_prik - transaction origin private key, if no this value, will
+          create one CREATE transaction
+        receive_pubk - transaction receive public key
+        data - data json string
+    Not done:
+      trance and gather
+    '''
+    if request.method == 'GET':
+        # get paras
+        fields = request.GET.getlist('field')
+        limit = request.GET.get('limit', None)
+        sortby = request.GET.get('sortby', None)
+        order = request.GET.get('order', None)
+        # make sort function for rethinkdb driver
+        sort_func = lambda ts: ts['transaction'][sortby]
+        datas = rdb_select(sortby=sort_func, order=order,
+                        keys=['block', 'transactions'], limit=limit)
+        # can`t pluck, limit this data by rethinkdb driver, handle with hand
+        # limit
+        try:
+            limit = int(limit)
+        except TypeError:
+            limit = 100
+        limit = min(100, limit)  # limit less than 100
+        ans = []
+        for alist in datas:
+            for data in alist:
+                if len(ans) >= limit:
+                    return Response(ans)
+                ans.append(field_filter(data, fields))  # filter data
+
+        return Response(ans)
+    elif request.method == 'POST':
+        # get paras
+        oringin_pubk = request.POST.get('oringin_pubk', None)
+        oringin_prik = request.POST.get('oringin_prik', None)
+        receive_pubk = request.POST.get('receive_pubk', None)
+        data = request.POST.get('data', '{}')
+        # make sure paras
+        receive_prik = ''
+        bdb_input = None
+        bdb_type = 'CREATE'
+        data = json.loads(data)  # json string to json data
+        if receive_pubk is None:  # create a pair
+            receive_prik, receive_pubk = crypto.generate_key_pair()
+        bdb = Bigchain()
+        if oringin_pubk == None:  # create transaction
+            oringin_pubk = bdb.me
+            oringin_prik = bdb.me_private
+        else:  # transfer transaction
+            bdb_type = 'TRANSFER'
+            try:
+                bdb_input = bdb.get_owned_ids(oringin_pubk).pop()
+            except IndexError:  # wrong oringin_pubk, error need handle
+                return
+        # start transaction
+        tx = bdb.create_transaction(oringin_pubk, receive_pubk, bdb_input,
+                                    bdb_type, payload=data)
+        bdb.write_transaction(bdb.sign_transaction(tx, oringin_prik))
+        return Response({'txid': tx['id'], 'receive_pubk': receive_pubk,
+                        'receive_prik': receive_prik})
