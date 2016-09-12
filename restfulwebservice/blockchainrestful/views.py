@@ -390,6 +390,7 @@ def field_filter(source, fields):
     return ans
 
 @api_view(['GET'])
+@permission_classes((IsAuthenticated, ))
 def block(request, id, format=None):
     '''
     URL:
@@ -408,6 +409,7 @@ def block(request, id, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((IsAuthenticated, ))
 def blocks(request, format=None):
     '''
     URL:
@@ -432,6 +434,7 @@ def blocks(request, format=None):
     return Response(datas)
 
 @api_view(['GET'])
+@permission_classes((IsAuthenticated, ))
 def transaction(request, id, format=None):
     '''
     URL:
@@ -451,6 +454,7 @@ def transaction(request, id, format=None):
 
 
 @api_view(['GET', 'POST'])
+@permission_classes((IsAuthenticated, ))
 def transactions(request, format=None):
     '''
     URL:
