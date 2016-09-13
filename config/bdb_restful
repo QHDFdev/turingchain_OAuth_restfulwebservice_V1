@@ -1,0 +1,25 @@
+server {
+    listen         80;
+    charset UTF-8;
+    access_log      /var/log/nginx/bdb_rest_access.log;
+    error_log       /var/log/nginx/bdb_rest_error.log;
+
+    # for long post
+    client_max_body_size 75M;
+
+    # for django static resource
+    location /static {
+        expires 30d;
+        access_log off;
+        autoindex on;
+        add_header Cache-Control private;
+        alias /usr/share/nginx/html;
+    }
+    location / {
+        include uwsgi_params;
+        uwsgi_pass 127.0.0.1:8000;
+        # for long post
+        uwsgi_read_timeout 1800;
+
+    }
+}
