@@ -305,6 +305,18 @@ def create_common_transaction(request, format=None):
     return Response({'id': tx_signed['id']})
 
 # bill
+def error(sts, msg):
+    '''
+    make error message to client
+    Para:
+      sts - int, status of HTTP response
+      mag - string of message
+    Return:
+      Response
+    '''
+    return Response({'error': msg}, status=sts)
+
+
 def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
             limit=None, keys=None, db_name='bigchain'):
     '''
@@ -321,7 +333,7 @@ def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
       order - 'des' or 'asc', default 'asc'
       limit - string or int, limit the counter of return, less than 100
     Return:
-      None or list of data
+     list of data
     '''
     rdbc = r.connect(db=db_name)
     # make rql
@@ -352,13 +364,12 @@ def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
     except:
         # handle error?
         rtn = None
-    # for filter, rql.run() will return a DefaultCursor other than a dict
+    # for filter, rql.run() will return a DefaultCursor other than a list
     ans = []
     if rtn is None:
         pass
     elif type(rtn) != type([]):
         # conv DefaultCursor to a dict
-        ans = []
         for data in rtn:
             ans.append(data)
         rtn.close()
@@ -368,6 +379,7 @@ def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
     rdbc.close()
 
     return ans
+
 
 def field_filter(source, fields):
     '''
@@ -389,6 +401,7 @@ def field_filter(source, fields):
                 pass
     return ans
 
+
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
 def block(request, id, format=None):
@@ -402,10 +415,13 @@ def block(request, id, format=None):
     Return:
       a json dict
     '''
-    # get block data
+    # get block dakta
     fields = request.GET.getlist('field')
     data = rdb_select(filtes={'id': id}, fields=fields)
-    return Response(data[0])
+    if len(data) == 0:
+        return error(404, 'can not find this block')
+    else:
+        return Response(data[0])
 
 
 @api_view(['GET'])
@@ -431,7 +447,11 @@ def blocks(request, format=None):
     order = request.GET.get('order', None)
     # get data from database
     datas = rdb_select(fields=fields, sortby=sortby, order=order, limit=limit)
-    return Response(datas)
+    if len(datas) == 0:
+        return error(404, 'can not find blocks')
+    else:
+        return Response(datas)
+
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
@@ -450,7 +470,10 @@ def transaction(request, id, format=None):
     fields = request.GET.getlist('field')
     # get transaction
     data = b.get_transaction(id)
-    return Response(field_filter(data, fields))
+    if len(data) == 0:
+        return error(404, 'can not find this transaction')
+    else:
+        return Response(field_filter(data, fields))
 
 
 @api_view(['GET', 'POST'])
@@ -460,20 +483,23 @@ def transactions(request, format=None):
     URL:
       transactions/
     Use for:
-      get or create transaction
+      get or create bill transaction
     Para:
       GET:
         field - filter every json dict
-        limit - limit list length
-        sortby - sort by specified field
+        limit - limit list length, less than 100
+        sortby - sort by specified field, for timestamp
         order - the order for sort, 'asc' or 'des', default 'asc'
         opt - normal or trace, trace for trace transactions, default normal
-        pubk - public key for trace
+        receive_pubk - public key to get all transactions`id by receive,
+          do not support some paras like limit
+        oringin_pubk - public key to get all transactions`id by oringin
       POST:
         oringin_pubk - transaction origin public key, if no this value, will
           create one CREATE transaction
         oringin_prik - transaction origin private key, if no this value, will
           create one CREATE transaction
+        pre_txid - previous transaction id
         receive_pubk - transaction receive public key
         data - data json string
     Not done:
@@ -485,9 +511,29 @@ def transactions(request, format=None):
         limit = request.GET.get('limit', None)
         sortby = request.GET.get('sortby', None)
         order = request.GET.get('order', None)
+        receive_pubk = request.GET.get('receive_pubk', None)
+        oringin_pubk = request.GET.get('oringin_pubk', None)
         # make sort function for rethinkdb driver
-        sort_func = lambda ts: ts['transaction'][sortby]
-        datas = rdb_select(sortby=sort_func, order=order,
+        sort_func = None
+        if sortby != None:
+            sort_func = lambda ts: ts['transaction'][sortby]
+        # make filter
+        filtes_func = None
+        if receive_pubk != None:
+            # filtes_func = lambda x: x['transaction'].contains(lambda x: \
+            #            x['conditions'].contains(lambda x: x['new_owners'].\
+            #            contains(receive_pubk)))
+            # return by method get_owned_ids
+            return Response(
+                [{'id': x['txid']} for x in Bigchain().get_owned_ids(
+                    receive_pubk)])
+        elif oringin_pubk != None:
+            filtes_func = lambda x: x['transaction'].contains(lambda x: \
+                       x['fulfillments'].contains(lambda x: x['current_owners'].\
+                       contains(oringin_pubk)))
+            fields.append('id')
+        # get datas
+        datas = rdb_select(sortby=sort_func, order=order, filtes=filtes_func,
                         keys=['block', 'transactions'], limit=limit)
         # can`t pluck, limit this data by rethinkdb driver, handle with hand
         # limit
@@ -508,28 +554,62 @@ def transactions(request, format=None):
         # get paras
         oringin_pubk = request.POST.get('oringin_pubk', None)
         oringin_prik = request.POST.get('oringin_prik', None)
+        pre_txid = request.POST.get('pre_txid', None)
         receive_pubk = request.POST.get('receive_pubk', None)
         data = request.POST.get('data', '{}')
         # make sure paras
         receive_prik = ''
         bdb_input = None
         bdb_type = 'CREATE'
-        data = json.loads(data)  # json string to json data
-        if receive_pubk is None:  # create a pair
-            receive_prik, receive_pubk = crypto.generate_key_pair()
         bdb = Bigchain()
+        try:
+            data = json.loads(data)  # json string to json data
+        except JSONDecodeError:
+            return error(400, 'Wrong json string format')
+        # bill data format checker
+        left_money = 0
+        pre_data = None
+        billm = 'Bill_amount_money'
+        bill = 'bill'
+        if billm not in data.keys():
+            return error(400, 'Wrong data format')
+        # make sure paras
+        if receive_pubk == None:  # create a pair
+            receive_prik, receive_pubk = crypto.generate_key_pair()
         if oringin_pubk == None:  # create transaction
             oringin_pubk = bdb.me
             oringin_prik = bdb.me_private
         else:  # transfer transaction
             bdb_type = 'TRANSFER'
-            try:
-                bdb_input = bdb.get_owned_ids(oringin_pubk).pop()
-            except IndexError:  # wrong oringin_pubk, error need handle
-                return
+            if oringin_prik == None:
+                return error(400, 'need private key')
+            if pre_txid == None:
+                return error(400, 'need pre_txid when transfer')
+            # make input, in our case, the key 'cid' will always be 0
+            bdb_input = {'cid': 0, 'txid': pre_txid}
+            # get previous bill, and check it
+            pre_tx = bdb.get_transaction(pre_txid)
+            if pre_tx == None:
+                return error(400, 'Wrong pre_txid')
+            # money check
+            pre_data = pre_tx['transaction']['data']['payload']
+            pre_money = pre_data[bill][billm]
+            now_money = data[billm]
+            if now_money > pre_money:
+                return error(400, 'money to less')
+            left_money = pre_money - now_money
         # start transaction
         tx = bdb.create_transaction(oringin_pubk, receive_pubk, bdb_input,
-                                    bdb_type, payload=data)
+                                    bdb_type, payload={'pre_txid': pre_txid,
+                                                        'bill': data})
         bdb.write_transaction(bdb.sign_transaction(tx, oringin_prik))
+        # create new bill with left money
+        if pre_data != None:
+            # change data
+            pre_data[bill][billm] = left_money
+            pre_data['pre_txid'] = pre_txid
+            ltx = bdb.create_transaction(bdb.me, oringin_pubk, None,
+                                        'CREATE', payload=pre_data)
+            bdb.write_transaction(bdb.sign_transaction(ltx, bdb.me_private))
         return Response({'txid': tx['id'], 'receive_pubk': receive_pubk,
                         'receive_prik': receive_prik})
