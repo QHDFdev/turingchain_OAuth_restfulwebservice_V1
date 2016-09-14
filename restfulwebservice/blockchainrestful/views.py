@@ -322,7 +322,7 @@ def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
     '''
     rethinkdb wrapper
     Para:
-      filtes - dict, for filter
+      filtes - dict or a function for filter
       fields - list of string, pluck by this, only one layer
         eg: ['block_number'] means pluck data['block_number']
         can`t pluck multi layer like data['block']['transaction']
@@ -336,25 +336,33 @@ def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
      list of data
     '''
     rdbc = r.connect(db=db_name)
+    if limit != None:  # get limit int type
+        try:
+            limit = int(limit)
+        except TypeError:
+            limit = 100
+    else:
+        limit = 100
     # make rql
     rql = r.table(db_name)
-    if keys != None:
+    if keys != None:  # like r.table('bigchain')['block']['transaction']...
         for key in keys:
             rql = rql.__getitem__(key)
     if filtes != None:  # add filter
         rql = rql.filter(filtes)
     if sortby != None:  # add sort
         if order != 'des':  # add sort order
-            rql = rql.order_by(sortby)
+            if limit != 1:
+                rql = rql.order_by(sortby)
+            else:
+                rql = rql.min(sortby)
         else:
-            rql = rql.order_by(r.desc(sortby))
-    if limit != None:  # add limit
-        try:
-            rql = rql.limit(int(limit))
-        except TypeError:
-            rql.limit(100)
-    else:
-        rql.limit(100)
+            if limit != 1:
+                rql = rql.order_by(r.desc(sortby))
+            else:
+                rql = rql.max(sortby)
+    if limit != 1: # add limit
+        rql = rql.limit(limit)
     if len(fields) != 0:  # pluck data
         rql = rql.pluck(fields)
     # get data
@@ -368,7 +376,7 @@ def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
     ans = []
     if rtn is None:
         pass
-    elif type(rtn) != type([]):
+    elif 'close' in dir(rtn):
         # conv DefaultCursor to a dict
         for data in rtn:
             ans.append(data)
@@ -404,12 +412,12 @@ def field_filter(source, fields):
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
-def block(request, id, format=None):
+def block(request, key, format=None):
     '''
     URL:
       blocks/[id]/
     Use for:
-      get one block data by id
+      get one block data by id or block number
     Para:
       field - field to filter json dict
     Return:
@@ -417,7 +425,15 @@ def block(request, id, format=None):
     '''
     # get block dakta
     fields = request.GET.getlist('field')
-    data = rdb_select(filtes={'id': id}, fields=fields)
+    if len(key) > 60:  # select by block id
+        key_name = 'id'
+    else:  # select by block number
+        key_name = 'block_number'
+        try:
+            key = int(key)
+        except ValueError:
+            return error(400, 'wrong parameter')
+    data = rdb_select(filtes={key_name: key}, fields=fields)
     if len(data) == 0:
         return error(404, 'can not find this block')
     else:
@@ -542,6 +558,11 @@ def transactions(request, format=None):
         except TypeError:
             limit = 100
         limit = min(100, limit)  # limit less than 100
+        # return datas by max operation
+        if limit == 1 and sortby != None:
+            return Response(field_filter(datas[0], fields))
+        # return normal datas, it`s format willbe [[d1, ...], [d2, ..], ...]
+        #  change format to [d1, d2, d3...]
         ans = []
         for alist in datas:
             for data in alist:
