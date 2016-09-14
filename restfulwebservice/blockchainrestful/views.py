@@ -470,7 +470,7 @@ def transaction(request, id, format=None):
     fields = request.GET.getlist('field')
     # get transaction
     data = b.get_transaction(id)
-    if len(data) == 0:
+    if data == None:
         return error(404, 'can not find this transaction')
     else:
         return Response(field_filter(data, fields))
