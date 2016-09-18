@@ -511,11 +511,11 @@ def transactions(request, format=None):
         opt - normal or trace, trace for trace transactions, default normal
         receive_pubk - public key to get all transactions`id by receive,
           do not support some paras like limit
-        oringin_pubk - public key to get all transactions`id by oringin
+        origin_pubk - public key to get all transactions`id by origin
       POST:
-        oringin_pubk - transaction origin public key, if no this value, will
+        origin_pubk - transaction origin public key, if no this value, will
           create one CREATE transaction
-        oringin_prik - transaction origin private key, if no this value, will
+        origin_prik - transaction origin private key, if no this value, will
           create one CREATE transaction
         pre_txid - previous transaction id
         receive_pubk - transaction receive public key
@@ -530,7 +530,7 @@ def transactions(request, format=None):
         sortby = request.GET.get('sortby', None)
         order = request.GET.get('order', None)
         receive_pubk = request.GET.get('receive_pubk', None)
-        oringin_pubk = request.GET.get('oringin_pubk', None)
+        origin_pubk = request.GET.get('origin_pubk', None)
         operation = request.GET.get('operation', None)
         # make sort function for rethinkdb driver
         sort_func = None
@@ -546,10 +546,10 @@ def transactions(request, format=None):
             return Response(
                 [{'id': x['txid']} for x in Bigchain().get_owned_ids(
                     receive_pubk)])
-        elif oringin_pubk != None:
+        elif origin_pubk != None:
             filtes_funcs.append(lambda x: x['transaction'].contains(lambda x: \
                        x['fulfillments'].contains(lambda x: x['current_owners'].\
-                       contains(oringin_pubk))))
+                       contains(origin_pubk))))
             fields.append('id')
         if operation != None:
             filtes_funcs.append(lambda t: t.contains(\
@@ -579,8 +579,8 @@ def transactions(request, format=None):
         return Response(ans)
     elif request.method == 'POST':
         # get paras
-        oringin_pubk = request.POST.get('oringin_pubk', None)
-        oringin_prik = request.POST.get('oringin_prik', None)
+        origin_pubk = request.POST.get('origin_pubk', None)
+        origin_prik = request.POST.get('origin_prik', None)
         pre_txid = request.POST.get('pre_txid', None)
         receive_pubk = request.POST.get('receive_pubk', None)
         data = request.POST.get('data', '{}')
@@ -603,12 +603,12 @@ def transactions(request, format=None):
         # make sure paras
         if receive_pubk == None:  # create a pair
             receive_prik, receive_pubk = crypto.generate_key_pair()
-        if oringin_pubk == None:  # create transaction
-            oringin_pubk = bdb.me
-            oringin_prik = bdb.me_private
+        if origin_pubk == None:  # create transaction
+            origin_pubk = bdb.me
+            origin_prik = bdb.me_private
         else:  # transfer transaction
             bdb_type = 'TRANSFER'
-            if oringin_prik == None:
+            if origin_prik == None:
                 return error(400, 'need private key')
             if pre_txid == None:
                 return error(400, 'need pre_txid when transfer')
@@ -626,16 +626,16 @@ def transactions(request, format=None):
                 return error(400, 'money to less')
             left_money = pre_money - now_money
         # start transaction
-        tx = bdb.create_transaction(oringin_pubk, receive_pubk, bdb_input,
+        tx = bdb.create_transaction(origin_pubk, receive_pubk, bdb_input,
                                     bdb_type, payload={'pre_txid': pre_txid,
                                                         'bill': data})
-        bdb.write_transaction(bdb.sign_transaction(tx, oringin_prik))
+        bdb.write_transaction(bdb.sign_transaction(tx, origin_prik))
         # create new bill with left money
         if pre_data != None:
             # change data
             pre_data[bill][billm] = left_money
             pre_data['pre_txid'] = pre_txid
-            ltx = bdb.create_transaction(bdb.me, oringin_pubk, None,
+            ltx = bdb.create_transaction(bdb.me, origin_pubk, None,
                                         'CREATE', payload=pre_data)
             bdb.write_transaction(bdb.sign_transaction(ltx, bdb.me_private))
         return Response({'txid': tx['id'], 'receive_pubk': receive_pubk,
