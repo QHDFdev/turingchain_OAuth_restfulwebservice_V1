@@ -317,12 +317,12 @@ def error(sts, msg):
     return Response({'error': msg}, status=sts)
 
 
-def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
+def rdb_select(filtes=[], fields=[], sortby=None, order='asc',
             limit=None, keys=None, db_name='bigchain'):
     '''
     rethinkdb wrapper
     Para:
-      filtes - dict or a function for filter
+      filtes - list of dict or a function for filter
       fields - list of string, pluck by this, only one layer
         eg: ['block_number'] means pluck data['block_number']
         can`t pluck multi layer like data['block']['transaction']
@@ -348,8 +348,9 @@ def rdb_select(filtes=None, fields=[], sortby=None, order='asc',
     if keys != None:  # like r.table('bigchain')['block']['transaction']...
         for key in keys:
             rql = rql.__getitem__(key)
-    if filtes != None:  # add filter
-        rql = rql.filter(filtes)
+    if len(filtes) > 0 :  # add filter
+        for filte in filtes:
+            rql = rql.filter(filte)
     if sortby != None:  # add sort
         if order != 'des':  # add sort order
             if limit != 1:
@@ -433,7 +434,7 @@ def block(request, key, format=None):
             key = int(key)
         except ValueError:
             return error(400, 'wrong parameter')
-    data = rdb_select(filtes={key_name: key}, fields=fields)
+    data = rdb_select(filtes=[{key_name: key}], fields=fields)
     if len(data) == 0:
         return error(404, 'can not find this block')
     else:
@@ -503,6 +504,7 @@ def transactions(request, format=None):
     Para:
       GET:
         field - filter every json dict
+        operation - 'CREATE' or 'TRANSFER'
         limit - limit list length, less than 100
         sortby - sort by specified field, for timestamp
         order - the order for sort, 'asc' or 'des', default 'asc'
@@ -529,14 +531,15 @@ def transactions(request, format=None):
         order = request.GET.get('order', None)
         receive_pubk = request.GET.get('receive_pubk', None)
         oringin_pubk = request.GET.get('oringin_pubk', None)
+        operation = request.GET.get('operation', None)
         # make sort function for rethinkdb driver
         sort_func = None
         if sortby != None:
             sort_func = lambda ts: ts['transaction'][sortby]
         # make filter
-        filtes_func = None
+        filtes_funcs = []
         if receive_pubk != None:
-            # filtes_func = lambda x: x['transaction'].contains(lambda x: \
+            # filtes_funcs = lambda x: x['transaction'].contains(lambda x: \
             #            x['conditions'].contains(lambda x: x['new_owners'].\
             #            contains(receive_pubk)))
             # return by method get_owned_ids
@@ -544,12 +547,15 @@ def transactions(request, format=None):
                 [{'id': x['txid']} for x in Bigchain().get_owned_ids(
                     receive_pubk)])
         elif oringin_pubk != None:
-            filtes_func = lambda x: x['transaction'].contains(lambda x: \
+            filtes_funcs.append(lambda x: x['transaction'].contains(lambda x: \
                        x['fulfillments'].contains(lambda x: x['current_owners'].\
-                       contains(oringin_pubk)))
+                       contains(oringin_pubk))))
             fields.append('id')
+        if operation != None:
+            filtes_funcs.append(lambda t: t.contains(\
+                lambda x: x['transaction']['operation'] == operation))
         # get datas
-        datas = rdb_select(sortby=sort_func, order=order, filtes=filtes_func,
+        datas = rdb_select(sortby=sort_func, order=order, filtes=filtes_funcs,
                         keys=['block', 'transactions'], limit=limit)
         # can`t pluck, limit this data by rethinkdb driver, handle with hand
         # limit
