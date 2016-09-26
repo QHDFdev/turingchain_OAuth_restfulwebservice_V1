@@ -3,19 +3,23 @@ import time
 import json
 
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.permissions import IsAuthenticated
+from rest_condition import ConditionalPermission, C, And, Or, Not
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
 from bigchaindb import Bigchain, crypto
 import rethinkdb as r
+
+from blockchainrestful.custom import IsTest
+from blockchainrestful.custom import IsNormal
 
 b = Bigchain()
 conn = r.connect(db='bigchain')
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def get_block(request, format=None):
     """
     通过属性得到区块
@@ -31,7 +35,6 @@ def get_block(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def get_last_block(request, format=None):
     """
     查询最新的区块
@@ -43,7 +46,6 @@ def get_last_block(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def get_block_by_id(request, id, format=None):
     """
     通过区块id查询区块
@@ -60,7 +62,7 @@ def get_block_by_id(request, id, format=None):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@permission_classes((IsAdminUser, ))
+@api_view(['GET'])
 def get_block_by_height(request, height, format=None):
     """
     通过区块高度返回区块
@@ -77,7 +79,7 @@ def get_block_by_height(request, height, format=None):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@permission_classes((IsAdminUser, ))
+@api_view(['GET'])
 def get_block_by_transaction_id(request, transaction_id, format=None):
     """
     通过交易id查询区块
@@ -96,7 +98,6 @@ def get_block_by_transaction_id(request, transaction_id, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def get_last_transaction(request, format=None):
     """
     查询最新的交易
@@ -109,7 +110,6 @@ def get_last_transaction(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def get_transaction_by_id(request, id, format=None):
     """
     通过交易id查询交易
@@ -124,7 +124,6 @@ def get_transaction_by_id(request, id, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def get_transfer_transaction(request, format=None):
     """
     查询transfer transaction
@@ -139,7 +138,6 @@ def get_transfer_transaction(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def get_key_pair(request, format=None):
     """
     获取秘钥
@@ -151,7 +149,6 @@ def get_key_pair(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def trace_transaction(request, format=None):
     """
     溯源
@@ -175,7 +172,6 @@ def trace_transaction(request, format=None):
 
 
 @api_view(['POST'])
-@permission_classes((IsAdminUser, ))
 def create_transaction(request, format=None):
     """
     区块创建Create交易
@@ -198,7 +194,6 @@ def create_transaction(request, format=None):
 
 
 @api_view(['POST'])
-@permission_classes((IsAdminUser, ))
 def transfer_transaction(request, format=None):
     """
     创建Transfer交易
@@ -252,7 +247,6 @@ def transfer_transaction(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def get_common_transaction(request, id, format=None):
     """
     通用交易查询函数
@@ -270,7 +264,6 @@ def get_common_transaction(request, id, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def trace_common_transaction(request, format=None):
     """
     通用交易回溯函数
@@ -292,7 +285,7 @@ def trace_common_transaction(request, format=None):
 
 
 @api_view(['POST'])
-@permission_classes((IsAuthenticated, ))
+@permission_classes((Or(IsTest, IsNormal),))
 def create_common_transaction(request, format=None):
     """
     通用交易插入函数
@@ -418,7 +411,6 @@ def field_filter(source, fields):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def block(request, key, format=None):
     '''
     URL:
@@ -448,7 +440,6 @@ def block(request, key, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def blocks(request, format=None):
     '''
     URL:
@@ -477,7 +468,6 @@ def blocks(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((IsAdminUser, ))
 def transaction(request, id, format=None):
     '''
     URL:
@@ -500,7 +490,7 @@ def transaction(request, id, format=None):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes((IsAdminUser, ))
+@permission_classes((Or(IsTest, IsNormal),))
 def transactions(request, format=None):
     '''
     URL:
@@ -510,11 +500,10 @@ def transactions(request, format=None):
     Para:
       GET:
         field - filter every json dict
-        operation - 'CREATE' or 'TRANSFER'
+        operation - CREATE or TRANSFER
         limit - limit list length, less than 100
         sortby - sort by specified field, for timestamp
-        order - the order for sort, 'asc' or 'des', default 'asc'
-        opt - normal or trace, trace for trace transactions, default normal
+        order - the order for sort, asc or des, default asc
         receive_pubk - public key to get all transactions`id by receive,
           do not support some paras like limit
         origin_pubk - public key to get all transactions`id by origin
@@ -526,8 +515,7 @@ def transactions(request, format=None):
         pre_txid - previous transaction id
         receive_pubk - transaction receive public key
         data - data json string
-    Not done:
-      trance and gather
+        type - transaction type, common, bill
     '''
     if request.method == 'GET':
         # get paras
@@ -590,6 +578,7 @@ def transactions(request, format=None):
         pre_txid = request.POST.get('pre_txid', None)
         receive_pubk = request.POST.get('receive_pubk', None)
         data = request.POST.get('data', '{}')
+        ttype = request.POST.get('type', 'common')
         # make sure paras
         receive_prik = ''
         bdb_input = None
@@ -618,12 +607,15 @@ def transactions(request, format=None):
                 return error(400, 'need private key')
             if pre_txid == None:
                 return error(400, 'need pre_txid when transfer')
-            # make input, in our case, the key 'cid' will always be 0
-            bdb_input = {'cid': 0, 'txid': pre_txid}
             # get previous bill, and check it
             pre_tx = bdb.get_transaction(pre_txid)
             if pre_tx == None:
-                return error(400, 'Wrong pre_txid')
+                return error(400, 'This pre_txid does not exist')
+            # make input, in our case, the key 'cid' will always be 0
+            bdb_input = {'cid': 0, 'txid': pre_txid}
+            # check bdb_input belong origin
+            if bdb_input not in bdb.get_owned_ids(origin_pubk):
+                return error(400, 'This pre_txid does not belong the origin')
             # money check
             pre_data = pre_tx['transaction']['data']['payload']
             pre_money = pre_data[bill][billm]

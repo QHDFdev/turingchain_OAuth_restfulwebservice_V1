@@ -25,7 +25,7 @@ SECRET_KEY = 'jdu!(t-y2gdnndmi5upmfd@j57^8$(o+gm8y8k#a0mdi**q%fm'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'blockchainrestful',
 ]
 
@@ -125,5 +126,11 @@ STATIC_URL = '/static/'
 STATIC_ROOT = '/root/Blockchain_restful_webservice/restfulwebservice/static/'
 
 REST_FRAMEWORK = {
-    'PAGE_SIZE': 10
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'blockchainrestful.custom.IsNormal',
+    ),
+    'PAGE_SIZE': 10,
 }

@@ -21,7 +21,7 @@ urlpatterns = [
     url(r'^blocks/$', views.blocks),
     url(r'^blocks/(?P<key>[0-9a-z]+)/$', views.block),
     url(r'^transactions/$', views.transactions),
-    url(r'^transactions/(?P<id>[0-9a-z]+)/$', views.transaction)
+    url(r'^transactions/(?P<id>[0-9a-z]+)/$', views.transaction),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
