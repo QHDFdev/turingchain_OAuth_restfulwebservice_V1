@@ -515,7 +515,6 @@ def transactions(request, format=None):
         pre_txid - previous transaction id
         receive_pubk - transaction receive public key
         data - data json string
-        type - transaction type, common, bill
     '''
     if request.method == 'GET':
         # get paras
@@ -578,7 +577,6 @@ def transactions(request, format=None):
         pre_txid = request.POST.get('pre_txid', None)
         receive_pubk = request.POST.get('receive_pubk', None)
         data = request.POST.get('data', '{}')
-        ttype = request.POST.get('type', 'common')
         # make sure paras
         receive_prik = ''
         bdb_input = None
