@@ -13,7 +13,9 @@ from bigchaindb import Bigchain, crypto
 import rethinkdb as r
 
 from blockchainrestful.custom import IsTest
-from blockchainrestful.custom import IsNormal
+from blockchainrestful.custom import IsAdmin
+from blockchainrestful.custom import IsUser
+from blockchainrestful.custom import IsManager
 
 b = Bigchain()
 conn = r.connect(db='bigchain')
@@ -98,6 +100,7 @@ def get_block_by_transaction_id(request, transaction_id, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((Or(IsAdmin, IsManager),))
 def get_last_transaction(request, format=None):
     """
     查询最新的交易
@@ -110,6 +113,7 @@ def get_last_transaction(request, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((Or(IsAdmin, IsManager),))
 def get_transaction_by_id(request, id, format=None):
     """
     通过交易id查询交易
@@ -124,6 +128,7 @@ def get_transaction_by_id(request, id, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((Or(IsAdmin, IsManager),))
 def get_transfer_transaction(request, format=None):
     """
     查询transfer transaction
@@ -138,6 +143,7 @@ def get_transfer_transaction(request, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((Or(IsAdmin, IsManager, IsUser),))
 def get_key_pair(request, format=None):
     """
     获取秘钥
@@ -149,6 +155,7 @@ def get_key_pair(request, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((Or(IsAdmin, IsManager),))
 def trace_transaction(request, format=None):
     """
     溯源
@@ -172,6 +179,7 @@ def trace_transaction(request, format=None):
 
 
 @api_view(['POST'])
+@permission_classes((Or(IsAdmin, IsManager),))
 def create_transaction(request, format=None):
     """
     区块创建Create交易
@@ -194,6 +202,7 @@ def create_transaction(request, format=None):
 
 
 @api_view(['POST'])
+@permission_classes((Or(IsAdmin, IsManager),))
 def transfer_transaction(request, format=None):
     """
     创建Transfer交易
@@ -247,6 +256,7 @@ def transfer_transaction(request, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((Or(IsAdmin, IsManager, IsUser),))
 def get_common_transaction(request, id, format=None):
     """
     通用交易查询函数
@@ -264,6 +274,7 @@ def get_common_transaction(request, id, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((Or(IsAdmin, IsUser, IsManager),))
 def trace_common_transaction(request, format=None):
     """
     通用交易回溯函数
@@ -285,7 +296,7 @@ def trace_common_transaction(request, format=None):
 
 
 @api_view(['POST'])
-@permission_classes((Or(IsTest, IsNormal),))
+@permission_classes((Or(IsTest, IsUser, IsManager, IsAdmin),))
 def create_common_transaction(request, format=None):
     """
     通用交易插入函数
@@ -468,6 +479,7 @@ def blocks(request, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((Or(IsAdmin, IsManager),))
 def transaction(request, id, format=None):
     '''
     URL:
@@ -490,7 +502,7 @@ def transaction(request, id, format=None):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes((Or(IsTest, IsNormal),))
+@permission_classes((Or(IsAdmin, IsManager),))
 def transactions(request, format=None):
     '''
     URL:

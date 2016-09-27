@@ -13,9 +13,14 @@ class IsTest(BasePermission):
     def has_permission(self, request, view):
         return 'test' in [x['name'] for x in request.user.groups.values()]
 
-class IsNormal(BasePermission):
-    '''
-    permissions for test
-    '''
+class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        return 'normal' in [x['name'] for x in request.user.groups.values()]
+        return 'admin' in [x['name'] for x in request.user.groups.values()]
+
+class IsUser(BasePermission):
+    def has_permission(self, request, view):
+        return 'user' in [x['name'] for x in request.user.groups.values()]
+
+class IsManager(BasePermission):
+    def has_permission(self, request, view):
+        return 'manager' in [x['name'] for x in request.user.groups.values()]
