@@ -544,18 +544,13 @@ def transactions(request, format=None):
         # make filter
         filtes_funcs = []
         if receive_pubk != None:
-            # filtes_funcs = lambda x: x['transaction'].contains(lambda x: \
-            #            x['conditions'].contains(lambda x: x['new_owners'].\
-            #            contains(receive_pubk)))
-            # return by method get_owned_ids
-            return Response(
-                [{'id': x['txid']} for x in Bigchain().get_owned_ids(
-                    receive_pubk)])
+            filtes_funcs.append(lambda x: x['transaction'].contains(lambda x: \
+                       x['conditions'].contains(lambda x: x['new_owners'].\
+                       contains(receive_pubk))))
         elif origin_pubk != None:
             filtes_funcs.append(lambda x: x['transaction'].contains(lambda x: \
                        x['fulfillments'].contains(lambda x: x['current_owners'].\
                        contains(origin_pubk))))
-            fields.append('id')
         if operation != None:
             filtes_funcs.append(lambda t: t.contains(\
                 lambda x: x['transaction']['operation'] == operation))
